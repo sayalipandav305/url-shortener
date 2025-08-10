@@ -4,7 +4,7 @@ FROM php:8.2-fpm
 # Set the working directory to /var/www/html
 WORKDIR /var/www/html
 
-# Install system dependencies and PHP extensions
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libzip-dev \
@@ -14,13 +14,19 @@ RUN apt-get update && apt-get install -y \
     locales \
     git \
     curl \
-    zip \
     unzip \
+    libonig-dev \
+    libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN docker-php-ext-install pdo_mysql mbstring zip exif pcntl
-RUN docker-php-ext-configure gd --with-webp=/usr/include/webp
-RUN docker-php-ext-install gd
+# Install PHP extensions
+RUN docker-php-ext-install -j$(nproc) \
+    pdo_mysql \
+    mbstring \
+    zip \
+    exif \
+    pcntl \
+    gd
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -28,12 +34,10 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy the application code to the working directory
 COPY . /var/www/html
 
-# Copy the Nginx configuration
-COPY .nginx/default.conf /etc/nginx/sites-available/default.conf
-
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html/storage
-RUN chown -R www-data:www-data /var/www/html/bootstrap/cache
+# Set permissions for the storage and cache directories
+RUN chown -R www-data:www-data /var/www/html/storage \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage
 
 # Expose port 9000 and start PHP-FPM
 EXPOSE 9000
