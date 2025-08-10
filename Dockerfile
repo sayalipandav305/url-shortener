@@ -1,10 +1,7 @@
-# Use the official PHP image as the base image
 FROM php:8.2-fpm
 
-# Set the working directory to /var/www/html
 WORKDIR /var/www/html
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     libzip-dev \
@@ -17,9 +14,9 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libonig-dev \
     libpq-dev \
+    nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
 RUN docker-php-ext-install -j$(nproc) \
     pdo_mysql \
     mbstring \
@@ -28,17 +25,19 @@ RUN docker-php-ext-install -j$(nproc) \
     pcntl \
     gd
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy the application code to the working directory
 COPY . /var/www/html
 
-# Set permissions for the storage and cache directories
+COPY .nginx/default.conf /etc/nginx/sites-available/default.conf
+
 RUN chown -R www-data:www-data /var/www/html/storage \
     && chown -R www-data:www-data /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage
 
-# Expose port 9000 and start PHP-FPM
-EXPOSE 9000
-CMD ["php-fpm"]
+# Copy the startup script and make it executable
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+EXPOSE 80
+CMD ["/start.sh"]
