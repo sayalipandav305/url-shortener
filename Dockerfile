@@ -35,7 +35,6 @@ RUN chown -R www-data:www-data /var/www/html/storage \
     && chown -R www-data:www-data /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/storage
 
-# Copy the startup script and make it executable
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
